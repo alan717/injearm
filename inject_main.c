@@ -8,7 +8,8 @@
 
 #include "utils.h"
 
-int main(){
+int main(int argc, char** argv){
+
 
 if(argc < 4)
 	{
@@ -71,44 +72,16 @@ if(argc < 4)
 	long freeOffset = freeAddr - mylibcaddr;
 	long dlopenOffset = dlopenAddr - mylibcaddr;
 	long raiseOffset = raiseAddr - mylibcaddr;
+    printf("malloc offset:%p\n",mallocOffset);
 
 	// get the target process' libc address and use it to find the
 	// addresses of the syscalls we want to use inside the target process
 	long targetLibcAddr = getlibcaddr(target);
+    printf("targetLibcAddr offset:%p\n",targetLibcAddr);
 	long targetMallocAddr = targetLibcAddr + mallocOffset;
 	long targetFreeAddr = targetLibcAddr + freeOffset;
 	long targetDlopenAddr = targetLibcAddr + dlopenOffset;
 	long targetRaiseAddr = targetLibcAddr + raiseOffset;
-
-	struct user_regs oldregs, regs;
-	memset(&oldregs, 0, sizeof(struct user_regs));
-	memset(&regs, 0, sizeof(struct user_regs));
-
-	ptrace_attach(target);
-
-	ptrace_getregs(target, &oldregs);
-	memcpy(&regs, &oldregs, sizeof(struct user_regs));
-
-	// find a good address to copy code to
-	long addr = freespaceaddr(target) + sizeof(long);
-
-	// now that we have an address to copy code to, set the target's
-	// program counter to it.
-	//
-	// subtract 4 bytes from the actual address, because ARM's PC actually
-	// refers to the next instruction rather than the current instruction.
-	regs.uregs[15] = addr - 4;
-
-	// pass arguments to my function injectSharedLibrary() by loading them
-	// into the right registers. see comments in injectSharedLibrary() for
-	// more details.
-	regs.uregs[1] = targetRaiseAddr;
-	regs.uregs[2] = targetMallocAddr;
-	regs.uregs[3] = targetDlopenAddr;
-	regs.uregs[4] = targetFreeAddr;
-	regs.uregs[5] = libPathLength;
-	ptrace_setregs(target, &regs);
-
 
     return 0;
 }
