@@ -5,14 +5,12 @@
 #include <sys/user.h>
 #include <wait.h>
 
-
 #include "utils.h"
+#include "ptrace.h"
 
 int main(int argc, char** argv){
 
-
-if(argc < 4)
-	{
+    if(argc < 4){
 		usage(argv[0]);
 		return 1;
 	}
@@ -83,5 +81,17 @@ if(argc < 4)
 	long targetDlopenAddr = targetLibcAddr + dlopenOffset;
 	long targetRaiseAddr = targetLibcAddr + raiseOffset;
 
+
+	struct user_regs oldregs, regs;
+	memset(&oldregs, 0, sizeof(struct user_regs));
+	memset(&regs, 0, sizeof(struct user_regs));
+
+	ptrace_attach(target);
+	ptrace_getregs(target, &oldregs);
+	memcpy(&regs, &oldregs, sizeof(struct user_regs));
+
+
+	// find a good address to copy code to
+	long addr = freespaceaddr(target) + sizeof(long);
     return 0;
 }
